@@ -1,8 +1,10 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <enet/enet.h>
 #include "common.h"
+#include "client.h"
 #include "rlutil.h"
 
 
@@ -10,9 +12,6 @@
 // The client sends string messages to the server, and the server passes
 // them on to all clients
 
-ENetHost *start_client(ENetPeer **peer, const int timeout_seconds);
-void send_string(ENetPeer *peer, char *s);
-void stop_client(ENetHost *host, ENetPeer *peer);
 #define CONNECTION_WAIT_MS 5000
 // Arbitrary max number of servers to scan for
 #define MAX_SERVERS 10
@@ -39,7 +38,7 @@ int main(int argc, char *argv[])
 	int check;
 	do
 	{
-		Sleep(1);
+		usleep(1);
 		const int k = nb_getch();
 		if (k == KEY_ENTER || k == '\r')
 		{
@@ -93,8 +92,6 @@ int main(int argc, char *argv[])
 	stop_client(host, peer);
 	return 0;
 }
-
-int find_servers(ServerInfo *server_infos, ENetAddress *addrs, int max_servers, int timeout_seconds);
 
 ENetHost *start_client(ENetPeer **peer, const int timeout_seconds)
 {
@@ -229,12 +226,13 @@ int find_servers(ServerInfo *server_infos, ENetAddress *addrs, int max_servers, 
 				sinfo_index++;
 			}
 		}
-		Sleep(1000);
+		usleep(1000);
 	}
 	if (enet_socket_shutdown(scanner, ENET_SOCKET_SHUTDOWN_READ_WRITE) != 0)
 	{
-		fprintf(stderr, "Failed to shutdown listen socket\n");
-		return 0;
+		perror("Socket error");
+		//fprintf(stderr, "Failed to shutdown listen socket! Errno: %d \n", errno);
+		//return 0; // Can we just like, carry on anyways?
 	}
 	enet_socket_destroy(scanner);
 	return sinfo_index;
